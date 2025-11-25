@@ -9,8 +9,27 @@ data "archive_file" "resize_lambda_zip" {
 }
 
 ##############################################
-# Lambda Function
+# Lambda Functions
 ##############################################
+
+resource "aws_lambda_function" "upload_file" {
+  function_name = "uploadFile"
+  handler       = "index.handler"
+  runtime       = "nodejs18.x"
+
+  filename         = "${path.module}/lambdas/upload/upload.zip"
+  source_code_hash = filebase64sha256("${path.module}/lambdas/upload/upload.zip")
+
+  environment {
+    variables = {
+      BUCKET_IMAGES = aws_s3_bucket.images.bucket
+      S3_ENDPOINT   = "http://s3.localhost.localstack.cloud:4566"
+      S3_PUBLIC_URL = "http://localhost:4566/${aws_s3_bucket.images.bucket}"
+    }
+  }
+
+  role = aws_iam_role.lambda_exec.arn
+}
 
 resource "aws_lambda_function" "resize_image" {
   function_name = var.lambda_function_name

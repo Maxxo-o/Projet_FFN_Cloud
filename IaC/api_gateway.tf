@@ -56,3 +56,48 @@ resource "aws_api_gateway_deployment" "images_deploy" {
   rest_api_id = aws_api_gateway_rest_api.images_api.id
   stage_name  = var.api_gateway_stage_name
 }
+##############################################
+# Upload API Gateway Resources
+##############################################
+
+resource "aws_api_gateway_rest_api" "api" {
+  name = "uploadApi"
+}
+
+resource "aws_api_gateway_resource" "upload" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "upload"
+}
+
+resource "aws_api_gateway_method" "upload_post" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.upload.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "upload_integration" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.upload.id
+  http_method = aws_api_gateway_method.upload_post.http_method
+  type        = "AWS_PROXY"
+  uri         = aws_lambda_function.upload_file.invoke_arn
+  integration_http_method = "POST"
+}
+
+resource "aws_lambda_permission" "apigw_lambda" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.upload_file.function_name
+  principal     = "apigateway.amazonaws.com"
+}
+
+resource "aws_api_gateway_deployment" "deployment" {
+  depends_on = [
+    aws_api_gateway_integration.upload_integration
+  ]
+
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  stage_name  = "prod"
+}
