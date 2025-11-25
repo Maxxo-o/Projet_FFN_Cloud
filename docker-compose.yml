@@ -11,19 +11,20 @@ services:
       - "4566:4566"
       - "4571:4571"
     environment:
-      - SERVICES=lambda,dynamodb,sqs,s3
+      - SERVICES=lambda,dynamodb,sqs,s3,apigateway,iam,cloudformation
       - DEBUG=1
-      - LAMBDA_EXECUTOR=local
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
 
   #########################################
   # Frontend
   #########################################
   frontend:
     build:
-      context: ./ffn-material-management
+      context: ../ffn-material-management
     container_name: react-app
     ports:
       - "3000:3000"
@@ -31,4 +32,3 @@ services:
       - REACT_APP_API_URL=http://localhost:4566
     depends_on:
       - localstack
-
