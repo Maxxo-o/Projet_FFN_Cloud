@@ -150,3 +150,27 @@ resource "aws_s3_bucket_policy" "assets_public_read" {
 
   depends_on = [aws_s3_bucket.assets_bucket]
 }
+##############################################
+# S3 Bucket for Images Upload
+##############################################
+
+resource "aws_s3_bucket" "images" {
+  bucket = "ffn-images-bucket"
+}
+
+resource "aws_s3_bucket_policy" "images_policy" {
+  bucket = aws_s3_bucket.images.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.images.arn}/*"
+      }
+    ]
+  })
+}

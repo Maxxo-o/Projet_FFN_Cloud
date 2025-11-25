@@ -41,3 +41,26 @@ output "frontend_website_url" {
   description = "URL du site frontend hébergé sur S3"
   value       = "http://localhost:4566/${aws_s3_bucket.frontend_bucket.bucket}/index.html"
 }
+##############################################
+# Upload API Outputs
+##############################################
+
+output "upload_endpoint" {
+  description = "API Gateway endpoint for upload"
+  value       = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.api.id}/prod/_user_request_/upload"
+}
+
+output "s3_bucket_name" {
+  description = "S3 bucket name for images"
+  value       = aws_s3_bucket.images.bucket
+}
+
+output "s3_public_url" {
+  description = "S3 public URL for images"
+  value       = "http://localhost:4566/${aws_s3_bucket.images.bucket}"
+}
+
+output "api_gateway_upload_url" {
+  description = "API Gateway base URL for upload"
+  value       = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.api.id}/prod/_user_request_"
+}
