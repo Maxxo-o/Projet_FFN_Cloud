@@ -1,0 +1,23 @@
+{
+  "name": "resize-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function pour redimensionner les images",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "zip": "zip -r ../resize_lambda.zip ."
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "image",
+    "resize",
+    "sharp"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.1500.0",
+    "sharp": "^0.32.6"
+  }
+}

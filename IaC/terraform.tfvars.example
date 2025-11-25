@@ -1,0 +1,45 @@
+##############################################
+# Exemple de fichier terraform.tfvars
+##############################################
+# Copiez ce fichier vers terraform.tfvars et personnalisez selon vos besoins
+
+# Configuration AWS
+aws_region = "us-east-1"
+localstack_endpoint = "http://localhost:4566"
+
+# DynamoDB
+dynamodb_table_name = "Users"
+
+# SQS
+sqs_queue_name = "UserQueue"
+sqs_visibility_timeout = 30
+
+# Lambda
+lambda_function_name = "resizeImage"
+lambda_runtime = "nodejs18.x"
+lambda_handler = "index.handler"
+lambda_memory_size = 512
+lambda_timeout = 30
+lambda_source_dir = "../lambda/resize"
+lambda_zip_output = "../lambda/resize_lambda.zip"
+
+# Variables d'environnement Lambda
+lambda_env_bucket = "nextjs-assets"
+lambda_env_s3_endpoint = "http://localstack:4566"
+lambda_env_node_options = "--max-old-space-size=450"
+
+# API Gateway
+api_gateway_name = "imagesAPI"
+api_gateway_description = "API pour toutes les Lambdas images"
+api_gateway_stage_name = "test"
+api_resource_path = "resize"
+
+# IAM
+lambda_role_name = "lambda-exec-role"
+
+# Tags
+common_tags = {
+  Environment = "development"
+  Project     = "FFN-Cloud"
+  ManagedBy   = "Terraform"
+}
