@@ -2,17 +2,10 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, PutCommand, GetCommand, DeleteCommand, ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const { v4: uuidv4 } = require("uuid");
 
-// Configuration pour environnement Docker LocalStack
-const config = {
+const client = new DynamoDBClient({
   region: "us-east-1",
-  endpoint: "http://172.20.0.2:4566", // Adresse interne de LocalStack dans Docker
-  credentials: {
-    accessKeyId: "test",
-    secretAccessKey: "test"
-  }
-};
-
-const client = new DynamoDBClient(config);
+  endpoint: process.env.AWS_ENDPOINT_URL || "http://host.docker.internal:4566",
+});
 
 const dynamoDb = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
