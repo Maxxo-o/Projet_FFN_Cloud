@@ -151,8 +151,8 @@ resource "aws_iam_role_policy" "lambda_policy" {
 
 data "archive_file" "materials_lambda" {
   type        = "zip"
-  source_dir  = "../lambda/materials"
-  output_path = "../lambda_materials.zip"
+  source_dir  = var.lambda_material_source_dir
+  output_path = var.lambda_material_zip_output
 }
 
 resource "aws_lambda_function" "materials" {
@@ -178,8 +178,8 @@ resource "aws_lambda_function" "materials" {
 
 data "archive_file" "loans_lambda" {
   type        = "zip"
-  source_dir  = "../lambda/loans"
-  output_path = "../lambda_loans.zip"
+  source_dir  = var.lambda_loans_source_dir
+  output_path = var.lambda_loans_zip_output
 }
 
 resource "aws_lambda_function" "loans" {
@@ -197,4 +197,6 @@ resource "aws_lambda_function" "loans" {
       DYNAMODB_ENDPOINT = "http://172.20.0.2:4566"
     }
   }
+
+  tags = var.common_tags
 }

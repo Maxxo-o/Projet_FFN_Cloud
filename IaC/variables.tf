@@ -189,3 +189,36 @@ variable "images_bucket_name" {
   type        = string
   default     = "images"
 }
+variable "lambda_material_source_dir" {
+    description = "Répertoire source des assets Lambda"
+    type        = string
+    default     = "../lambda/materials"
+}
+
+variable "lambda_material_upload_dir" {
+    description = "Répertoire source des assets Lambda"
+    type        = string
+    default     = "../lambda/upload"
+}
+
+variable "lambda_material_zip_output" {
+    description = "Chemin de sortie du ZIP des assets Lambda"
+    type        = string
+    default     = "../lambda/lambda_materials.zip"
+}
+variable "lambda_loans_source_dir" {
+    description = "Répertoire source des assets Loans Lambda"
+    type        = string
+    default     = "../lambda/loans"
+}
+
+variable "lambda_loans_upload_dir" {
+    description = "Répertoire source des assets Loans Lambda"
+    type        = string
+    default     = "../lambda/upload"
+}
+variable "lambda_loans_zip_output" {
+    description = "Chemin de sortie du ZIP des assets Loans Lambda"
+    type        = string
+    default     = "../lambda/lambda_loans.zip"
+}
