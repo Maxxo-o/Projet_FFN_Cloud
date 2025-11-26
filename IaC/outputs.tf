@@ -17,11 +17,6 @@ output "loans_api_url" {
   value       = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.main.id}/dev/_user_request_/loans"
 }
 
-output "dynamodb_table_name" {
-  description = "Nom de la table DynamoDB"
-  value       = aws_dynamodb_table.users.name
-}
-
 output "sqs_queue_url" {
   description = "URL de la queue SQS"
   value       = aws_sqs_queue.user_queue.id

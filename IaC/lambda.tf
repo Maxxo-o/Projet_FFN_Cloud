@@ -131,7 +131,9 @@ resource "aws_lambda_function" "materials" {
 
   environment {
     variables = {
-      MATERIALS_TABLE = aws_dynamodb_table.materials.name
+      MATERIALS_TABLE    = aws_dynamodb_table.materials.name
+      AWS_REGION        = "us-east-1"
+      DYNAMODB_ENDPOINT = "http://172.20.0.2:4566"
     }
   }
 }
@@ -156,7 +158,9 @@ resource "aws_lambda_function" "loans" {
 
   environment {
     variables = {
-      LOANS_TABLE = aws_dynamodb_table.loans.name
+      LOANS_TABLE       = aws_dynamodb_table.loans.name
+      AWS_REGION        = "us-east-1"
+      DYNAMODB_ENDPOINT = "http://172.20.0.2:4566"
     }
   }
 }
