@@ -113,7 +113,23 @@ resource "aws_api_gateway_deployment" "deployment" {
   depends_on = [
     aws_api_gateway_integration.upload_integration,
     aws_api_gateway_integration.resize_integration,
-    aws_api_gateway_integration.delete_integration
+    aws_api_gateway_integration.delete_integration,
+    # Materials integrations
+    aws_api_gateway_integration.materials_options_integration,
+    aws_api_gateway_integration.materials_get,
+    aws_api_gateway_integration.materials_post,
+    aws_api_gateway_integration.material_id_options_integration,
+    aws_api_gateway_integration.material_get,
+    aws_api_gateway_integration.material_put,
+    aws_api_gateway_integration.material_delete,
+    # Loans integrations  
+    aws_api_gateway_integration.loans_options_integration,
+    aws_api_gateway_integration.loans_get,
+    aws_api_gateway_integration.loans_post,
+    aws_api_gateway_integration.loan_id_options_integration,
+    aws_api_gateway_integration.loan_get,
+    aws_api_gateway_integration.loan_put,
+    aws_api_gateway_integration.loan_delete,
   ]
 
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -124,7 +140,17 @@ resource "aws_api_gateway_deployment" "deployment" {
     redeployment = sha1(jsonencode([
       aws_api_gateway_integration.upload_integration.id,
       aws_api_gateway_integration.resize_integration.id,
-      aws_api_gateway_integration.delete_integration.id
+      aws_api_gateway_integration.delete_integration.id,
+      aws_api_gateway_integration.materials_get.id,
+      aws_api_gateway_integration.materials_post.id,
+      aws_api_gateway_integration.material_get.id,
+      aws_api_gateway_integration.material_put.id,
+      aws_api_gateway_integration.material_delete.id,
+      aws_api_gateway_integration.loans_get.id,
+      aws_api_gateway_integration.loans_post.id,
+      aws_api_gateway_integration.loan_get.id,
+      aws_api_gateway_integration.loan_put.id,
+      aws_api_gateway_integration.loan_delete.id,
     ]))
   }
 
@@ -152,17 +178,15 @@ locals {
 }
 
 ##############################################
-# API Gateway REST API - Material Management
+# API Gateway REST API - Unified
 ##############################################
 
-resource "aws_api_gateway_rest_api" "main" {
-  name        = "material-management-api"
-  description = "Material Management API"
-}
+# Utiliser l'API Gateway existante pour tout
+# resource "aws_api_gateway_rest_api" "api" est déjà définie plus haut
 
 # CORS Configuration pour les erreurs 4xx et 5xx
 resource "aws_api_gateway_gateway_response" "cors_4xx" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   response_type = "DEFAULT_4XX"
 
   response_parameters = {
@@ -173,7 +197,7 @@ resource "aws_api_gateway_gateway_response" "cors_4xx" {
 }
 
 resource "aws_api_gateway_gateway_response" "cors_5xx" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   response_type = "DEFAULT_5XX"
 
   response_parameters = {
@@ -188,27 +212,27 @@ resource "aws_api_gateway_gateway_response" "cors_5xx" {
 ##############################################
 
 resource "aws_api_gateway_resource" "materials" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  parent_id   = aws_api_gateway_rest_api.main.root_resource_id
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
   path_part   = "materials"
 }
 
 resource "aws_api_gateway_resource" "material_id" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
+  rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_resource.materials.id
   path_part   = "{id}"
 }
 
 # OPTIONS /materials (CORS Preflight)
 resource "aws_api_gateway_method" "materials_options" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.materials.id
   http_method   = "OPTIONS"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "materials_options_integration" {
-  rest_api_id          = aws_api_gateway_rest_api.main.id
+  rest_api_id          = aws_api_gateway_rest_api.api.id
   resource_id          = aws_api_gateway_resource.materials.id
   http_method          = aws_api_gateway_method.materials_options.http_method
   type                 = "MOCK"
@@ -217,7 +241,7 @@ resource "aws_api_gateway_integration" "materials_options_integration" {
 }
 
 resource "aws_api_gateway_method_response" "materials_options_response" {
-  rest_api_id         = aws_api_gateway_rest_api.main.id
+  rest_api_id         = aws_api_gateway_rest_api.api.id
   resource_id         = aws_api_gateway_resource.materials.id
   http_method         = aws_api_gateway_method.materials_options.http_method
   status_code         = "200"
@@ -227,7 +251,7 @@ resource "aws_api_gateway_method_response" "materials_options_response" {
 resource "aws_api_gateway_integration_response" "materials_options_integration_response" {
   depends_on = [aws_api_gateway_integration.materials_options_integration]
 
-  rest_api_id         = aws_api_gateway_rest_api.main.id
+  rest_api_id         = aws_api_gateway_rest_api.api.id
   resource_id         = aws_api_gateway_resource.materials.id
   http_method         = aws_api_gateway_method.materials_options.http_method
   status_code         = "200"
@@ -236,14 +260,14 @@ resource "aws_api_gateway_integration_response" "materials_options_integration_r
 
 # GET /materials
 resource "aws_api_gateway_method" "materials_get" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.materials.id
   http_method   = "GET"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "materials_get" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.materials.id
   http_method             = aws_api_gateway_method.materials_get.http_method
   integration_http_method = "POST"
@@ -253,14 +277,14 @@ resource "aws_api_gateway_integration" "materials_get" {
 
 # POST /materials
 resource "aws_api_gateway_method" "materials_post" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.materials.id
   http_method   = "POST"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "materials_post" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.materials.id
   http_method             = aws_api_gateway_method.materials_post.http_method
   integration_http_method = "POST"
@@ -270,14 +294,14 @@ resource "aws_api_gateway_integration" "materials_post" {
 
 # OPTIONS /materials/{id} (CORS Preflight)
 resource "aws_api_gateway_method" "material_id_options" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.material_id.id
   http_method   = "OPTIONS"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "material_id_options_integration" {
-  rest_api_id          = aws_api_gateway_rest_api.main.id
+  rest_api_id          = aws_api_gateway_rest_api.api.id
   resource_id          = aws_api_gateway_resource.material_id.id
   http_method          = aws_api_gateway_method.material_id_options.http_method
   type                 = "MOCK"
@@ -286,7 +310,7 @@ resource "aws_api_gateway_integration" "material_id_options_integration" {
 }
 
 resource "aws_api_gateway_method_response" "material_id_options_response" {
-  rest_api_id         = aws_api_gateway_rest_api.main.id
+  rest_api_id         = aws_api_gateway_rest_api.api.id
   resource_id         = aws_api_gateway_resource.material_id.id
   http_method         = aws_api_gateway_method.material_id_options.http_method
   status_code         = "200"
@@ -296,7 +320,7 @@ resource "aws_api_gateway_method_response" "material_id_options_response" {
 resource "aws_api_gateway_integration_response" "material_id_options_integration_response" {
   depends_on = [aws_api_gateway_integration.material_id_options_integration]
 
-  rest_api_id         = aws_api_gateway_rest_api.main.id
+  rest_api_id         = aws_api_gateway_rest_api.api.id
   resource_id         = aws_api_gateway_resource.material_id.id
   http_method         = aws_api_gateway_method.material_id_options.http_method
   status_code         = "200"
@@ -305,14 +329,14 @@ resource "aws_api_gateway_integration_response" "material_id_options_integration
 
 # GET /materials/{id}
 resource "aws_api_gateway_method" "material_get" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.material_id.id
   http_method   = "GET"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "material_get" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.material_id.id
   http_method             = aws_api_gateway_method.material_get.http_method
   integration_http_method = "POST"
@@ -322,14 +346,14 @@ resource "aws_api_gateway_integration" "material_get" {
 
 # PUT /materials/{id}
 resource "aws_api_gateway_method" "material_put" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.material_id.id
   http_method   = "PUT"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "material_put" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.material_id.id
   http_method             = aws_api_gateway_method.material_put.http_method
   integration_http_method = "POST"
@@ -339,14 +363,14 @@ resource "aws_api_gateway_integration" "material_put" {
 
 # DELETE /materials/{id}
 resource "aws_api_gateway_method" "material_delete" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.material_id.id
   http_method   = "DELETE"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "material_delete" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.material_id.id
   http_method             = aws_api_gateway_method.material_delete.http_method
   integration_http_method = "POST"
@@ -359,27 +383,27 @@ resource "aws_api_gateway_integration" "material_delete" {
 ##############################################
 
 resource "aws_api_gateway_resource" "loans" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  parent_id   = aws_api_gateway_rest_api.main.root_resource_id
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
   path_part   = "loans"
 }
 
 resource "aws_api_gateway_resource" "loan_id" {
-  rest_api_id = aws_api_gateway_rest_api.main.id
+  rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_resource.loans.id
   path_part   = "{id}"
 }
 
 # OPTIONS /loans (CORS Preflight)
 resource "aws_api_gateway_method" "loans_options" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.loans.id
   http_method   = "OPTIONS"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "loans_options_integration" {
-  rest_api_id          = aws_api_gateway_rest_api.main.id
+  rest_api_id          = aws_api_gateway_rest_api.api.id
   resource_id          = aws_api_gateway_resource.loans.id
   http_method          = aws_api_gateway_method.loans_options.http_method
   type                 = "MOCK"
@@ -388,7 +412,7 @@ resource "aws_api_gateway_integration" "loans_options_integration" {
 }
 
 resource "aws_api_gateway_method_response" "loans_options_response" {
-  rest_api_id         = aws_api_gateway_rest_api.main.id
+  rest_api_id         = aws_api_gateway_rest_api.api.id
   resource_id         = aws_api_gateway_resource.loans.id
   http_method         = aws_api_gateway_method.loans_options.http_method
   status_code         = "200"
@@ -398,7 +422,7 @@ resource "aws_api_gateway_method_response" "loans_options_response" {
 resource "aws_api_gateway_integration_response" "loans_options_integration_response" {
   depends_on = [aws_api_gateway_integration.loans_options_integration]
 
-  rest_api_id         = aws_api_gateway_rest_api.main.id
+  rest_api_id         = aws_api_gateway_rest_api.api.id
   resource_id         = aws_api_gateway_resource.loans.id
   http_method         = aws_api_gateway_method.loans_options.http_method
   status_code         = "200"
@@ -407,14 +431,14 @@ resource "aws_api_gateway_integration_response" "loans_options_integration_respo
 
 # GET /loans
 resource "aws_api_gateway_method" "loans_get" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.loans.id
   http_method   = "GET"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "loans_get" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.loans.id
   http_method             = aws_api_gateway_method.loans_get.http_method
   integration_http_method = "POST"
@@ -424,14 +448,14 @@ resource "aws_api_gateway_integration" "loans_get" {
 
 # POST /loans
 resource "aws_api_gateway_method" "loans_post" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.loans.id
   http_method   = "POST"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "loans_post" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.loans.id
   http_method             = aws_api_gateway_method.loans_post.http_method
   integration_http_method = "POST"
@@ -441,14 +465,14 @@ resource "aws_api_gateway_integration" "loans_post" {
 
 # OPTIONS /loans/{id} (CORS Preflight)
 resource "aws_api_gateway_method" "loan_id_options" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.loan_id.id
   http_method   = "OPTIONS"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "loan_id_options_integration" {
-  rest_api_id          = aws_api_gateway_rest_api.main.id
+  rest_api_id          = aws_api_gateway_rest_api.api.id
   resource_id          = aws_api_gateway_resource.loan_id.id
   http_method          = aws_api_gateway_method.loan_id_options.http_method
   type                 = "MOCK"
@@ -457,7 +481,7 @@ resource "aws_api_gateway_integration" "loan_id_options_integration" {
 }
 
 resource "aws_api_gateway_method_response" "loan_id_options_response" {
-  rest_api_id         = aws_api_gateway_rest_api.main.id
+  rest_api_id         = aws_api_gateway_rest_api.api.id
   resource_id         = aws_api_gateway_resource.loan_id.id
   http_method         = aws_api_gateway_method.loan_id_options.http_method
   status_code         = "200"
@@ -467,7 +491,7 @@ resource "aws_api_gateway_method_response" "loan_id_options_response" {
 resource "aws_api_gateway_integration_response" "loan_id_options_integration_response" {
   depends_on = [aws_api_gateway_integration.loan_id_options_integration]
 
-  rest_api_id         = aws_api_gateway_rest_api.main.id
+  rest_api_id         = aws_api_gateway_rest_api.api.id
   resource_id         = aws_api_gateway_resource.loan_id.id
   http_method         = aws_api_gateway_method.loan_id_options.http_method
   status_code         = "200"
@@ -476,14 +500,14 @@ resource "aws_api_gateway_integration_response" "loan_id_options_integration_res
 
 # GET /loans/{id}
 resource "aws_api_gateway_method" "loan_get" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.loan_id.id
   http_method   = "GET"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "loan_get" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.loan_id.id
   http_method             = aws_api_gateway_method.loan_get.http_method
   integration_http_method = "POST"
@@ -493,14 +517,14 @@ resource "aws_api_gateway_integration" "loan_get" {
 
 # PUT /loans/{id}
 resource "aws_api_gateway_method" "loan_put" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.loan_id.id
   http_method   = "PUT"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "loan_put" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.loan_id.id
   http_method             = aws_api_gateway_method.loan_put.http_method
   integration_http_method = "POST"
@@ -510,14 +534,14 @@ resource "aws_api_gateway_integration" "loan_put" {
 
 # DELETE /loans/{id}
 resource "aws_api_gateway_method" "loan_delete" {
-  rest_api_id   = aws_api_gateway_rest_api.main.id
+  rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.loan_id.id
   http_method   = "DELETE"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "loan_delete" {
-  rest_api_id             = aws_api_gateway_rest_api.main.id
+  rest_api_id             = aws_api_gateway_rest_api.api.id
   resource_id             = aws_api_gateway_resource.loan_id.id
   http_method             = aws_api_gateway_method.loan_delete.http_method
   integration_http_method = "POST"
@@ -534,7 +558,7 @@ resource "aws_lambda_permission" "materials_api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.materials.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
 resource "aws_lambda_permission" "loans_api_gateway" {
@@ -542,31 +566,5 @@ resource "aws_lambda_permission" "loans_api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.loans.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
-}
-
-##############################################
-# API Gateway Deployment - Material Management
-##############################################
-
-resource "aws_api_gateway_deployment" "main" {
-  depends_on = [
-    aws_api_gateway_integration.materials_options_integration,
-    aws_api_gateway_integration.materials_get,
-    aws_api_gateway_integration.materials_post,
-    aws_api_gateway_integration.material_id_options_integration,
-    aws_api_gateway_integration.material_get,
-    aws_api_gateway_integration.material_put,
-    aws_api_gateway_integration.material_delete,
-    aws_api_gateway_integration.loans_options_integration,
-    aws_api_gateway_integration.loans_get,
-    aws_api_gateway_integration.loans_post,
-    aws_api_gateway_integration.loan_id_options_integration,
-    aws_api_gateway_integration.loan_get,
-    aws_api_gateway_integration.loan_put,
-    aws_api_gateway_integration.loan_delete,
-  ]
-
-  rest_api_id = aws_api_gateway_rest_api.main.id
-  stage_name  = "dev"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }

@@ -152,7 +152,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
 data "archive_file" "materials_lambda" {
   type        = "zip"
   source_dir  = "../lambda/materials"
-  output_path = "../lambda_materials.zip"
+  output_path = "../lambda/lambda_materials.zip"
 }
 
 resource "aws_lambda_function" "materials" {
@@ -179,7 +179,7 @@ resource "aws_lambda_function" "materials" {
 data "archive_file" "loans_lambda" {
   type        = "zip"
   source_dir  = "../lambda/loans"
-  output_path = "../lambda_loans.zip"
+  output_path = "../lambda/lambda_loans.zip"
 }
 
 resource "aws_lambda_function" "loans" {
