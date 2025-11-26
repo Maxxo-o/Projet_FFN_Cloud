@@ -2,10 +2,17 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, PutCommand, GetCommand, DeleteCommand, ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const { v4: uuidv4 } = require("uuid");
 
-const client = new DynamoDBClient({
+// Configuration pour environnement Docker LocalStack
+const config = {
   region: "us-east-1",
-  endpoint: "http://localhost:4566",
-});
+  endpoint: "http://172.20.0.2:4566", // Adresse interne de LocalStack dans Docker
+  credentials: {
+    accessKeyId: "test",
+    secretAccessKey: "test"
+  }
+};
+
+const client = new DynamoDBClient(config);
 
 const dynamoDb = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
@@ -44,10 +51,18 @@ exports.handler = async (event) => {
 
     // GET /materials - Liste tous les matériels  
     if (method === "GET" && !id) {
+      console.log("Tentative de scan de la table:", MATERIALS_TABLE);
+
       try {
+        // Première tentative
         const result = await dynamoDb.send(
-          new ScanCommand({ TableName: MATERIALS_TABLE })
+          new ScanCommand({
+            TableName: MATERIALS_TABLE,
+            ConsistentRead: true
+          })
         );
+
+        console.log("Scan réussi, nombre d'items:", result.Items?.length || 0);
 
         return {
           statusCode: 200,
@@ -58,13 +73,21 @@ exports.handler = async (event) => {
           }),
         };
       } catch (dynamoError) {
-        console.error("Erreur DynamoDB:", dynamoError);
+        console.error("Erreur DynamoDB (première tentative):", {
+          message: dynamoError.message,
+          code: dynamoError.name,
+          endpoint: config.endpoint,
+          table: MATERIALS_TABLE
+        });
+
         return {
           statusCode: 500,
           headers,
           body: JSON.stringify({
             error: "Erreur DynamoDB",
-            details: dynamoError.message
+            details: dynamoError.message,
+            endpoint: config.endpoint,
+            table: MATERIALS_TABLE
           }),
         };
       }
@@ -111,12 +134,12 @@ exports.handler = async (event) => {
       try {
         const body = JSON.parse(event.body || '{}');
 
-        if (!body.name || !body.category) {
+        if (!body.name || !body.category || !body.location || body.quantity === undefined) {
           return {
             statusCode: 400,
             headers,
             body: JSON.stringify({ 
-              error: "Champs requis manquants: name, category" 
+              error: "Champs requis manquants: name, category, location, quantity"
             }),
           };
         }
@@ -125,13 +148,23 @@ exports.handler = async (event) => {
           id: uuidv4(),
           name: body.name,
           category: body.category,
-          location: body.location || '',
+          subcategory: body.subcategory || undefined,
+          serialNumber: body.serialNumber || undefined,
+          location: body.location,
           status: body.status || 'disponible',
           condition: body.condition || 'bon',
+          purchaseDate: body.purchaseDate || undefined,
+          value: body.value || undefined,
+          description: body.description || undefined,
+          brand: body.brand || undefined,
+          model: body.model || undefined,
+          reference: body.reference || undefined,
+          associatedTo: body.associatedTo || undefined,
+          responsible: body.responsible || undefined,
+          usage: body.usage || undefined,
+          observations: body.observations || undefined,
           quantity: body.quantity || 1,
           loanedQuantity: body.loanedQuantity || 0,
-          serialNumber: body.serialNumber || '',
-          reference: body.reference || '',
           images: body.images || [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()

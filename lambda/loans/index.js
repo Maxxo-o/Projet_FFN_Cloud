@@ -2,16 +2,89 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, PutCommand, GetCommand, DeleteCommand, ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const { v4: uuidv4 } = require("uuid");
 
-const client = new DynamoDBClient({
+// Configuration pour environnement Docker LocalStack
+const config = {
   region: "us-east-1",
-  endpoint: "http://localhost:4566",
-});
+  endpoint: "http://172.20.0.2:4566", // Adresse interne de LocalStack dans Docker
+  credentials: {
+    accessKeyId: "test",
+    secretAccessKey: "test"
+  }
+};
+
+const client = new DynamoDBClient(config);
 
 const dynamoDb = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
 });
 
 const LOANS_TABLE = "Loans";
+const MATERIALS_TABLE = "Materials";
+
+// Fonction pour sanitiser un prêt et éviter les erreurs frontend
+function sanitizeLoan(loan) {
+  if (!loan) return null;
+
+  return {
+    ...loan,
+    actualReturnDate: loan.actualReturnDate || null,
+    conditionAtReturn: loan.conditionAtReturn || null,
+    notes: loan.notes || null,
+    subcategory: loan.subcategory || null,
+    serialNumber: loan.serialNumber || null,
+    purchaseDate: loan.purchaseDate || null,
+    value: loan.value || null,
+    description: loan.description || null,
+    brand: loan.brand || null,
+    model: loan.model || null,
+    reference: loan.reference || null,
+    associatedTo: loan.associatedTo || null,
+    responsible: loan.responsible || null,
+    usage: loan.usage || null,
+    observations: loan.observations || null,
+    images: loan.images || []
+  };
+}
+
+// Fonction pour mettre à jour la quantité prêtée d'un matériel
+async function updateMaterialLoanedQuantity(materialId, quantityChange) {
+  try {
+    // D'abord, récupérer le matériel actuel
+    const getMaterial = await dynamoDb.send(
+      new GetCommand({
+        TableName: MATERIALS_TABLE,
+        Key: { id: materialId },
+      })
+    );
+
+    if (!getMaterial.Item) {
+      console.error(`Matériel non trouvé: ${materialId}`);
+      return false;
+    }
+
+    const currentLoanedQuantity = getMaterial.Item.loanedQuantity || 0;
+    const newLoanedQuantity = Math.max(0, currentLoanedQuantity + quantityChange);
+
+    // Mettre à jour la quantité prêtée
+    await dynamoDb.send(
+      new UpdateCommand({
+        TableName: MATERIALS_TABLE,
+        Key: { id: materialId },
+        UpdateExpression: "SET loanedQuantity = :newQuantity, updatedAt = :updatedAt",
+        ExpressionAttributeValues: {
+          ":newQuantity": newLoanedQuantity,
+          ":updatedAt": new Date().toISOString()
+        },
+      })
+    );
+
+    console.log(`Quantité prêtée mise à jour pour ${materialId}: ${currentLoanedQuantity} -> ${newLoanedQuantity}`);
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la quantité prêtée:", error);
+    return false;
+  }
+}
 
 const headers = {
   "Content-Type": "application/json",
@@ -44,27 +117,46 @@ exports.handler = async (event) => {
 
     // GET /loans - Liste tous les prêts
     if (method === "GET" && !id) {
+      console.log("Tentative de scan de la table:", LOANS_TABLE);
+
       try {
+        // Première tentative
         const result = await dynamoDb.send(
-          new ScanCommand({ TableName: LOANS_TABLE })
+          new ScanCommand({
+            TableName: LOANS_TABLE,
+            ConsistentRead: true
+          })
         );
+
+        console.log("Scan réussi, nombre d'items:", result.Items?.length || 0);
+
+        // Sanitiser tous les prêts pour éviter les erreurs frontend
+        const sanitizedLoans = (result.Items || []).map(sanitizeLoan).filter(Boolean);
 
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
-            data: result.Items || [],
-            count: result.Items ? result.Items.length : 0
+            data: sanitizedLoans,
+            count: sanitizedLoans.length
           }),
         };
       } catch (dynamoError) {
-        console.error("Erreur DynamoDB:", dynamoError);
+        console.error("Erreur DynamoDB (première tentative):", {
+          message: dynamoError.message,
+          code: dynamoError.name,
+          endpoint: config.endpoint,
+          table: LOANS_TABLE
+        });
+
         return {
           statusCode: 500,
           headers,
           body: JSON.stringify({
             error: "Erreur DynamoDB",
-            details: dynamoError.message
+            details: dynamoError.message,
+            endpoint: config.endpoint,
+            table: LOANS_TABLE
           }),
         };
       }
@@ -88,10 +180,13 @@ exports.handler = async (event) => {
           };
         }
 
+        // Sanitiser le prêt pour éviter les erreurs frontend
+        const sanitizedLoan = sanitizeLoan(result.Item);
+
         return {
           statusCode: 200,
           headers,
-          body: JSON.stringify({ data: result.Item }),
+          body: JSON.stringify({ data: sanitizedLoan }),
         };
       } catch (dynamoError) {
         console.error("Erreur DynamoDB GET:", dynamoError);
@@ -111,12 +206,12 @@ exports.handler = async (event) => {
       try {
         const body = JSON.parse(event.body || '{}');
 
-        if (!body.materialId || !body.userId) {
+        if (!body.materialId || !body.quantity || !body.borrowerName || !body.borrowerContact || !body.loanDate || !body.expectedReturnDate || !body.conditionAtLoan) {
           return {
             statusCode: 400,
             headers,
             body: JSON.stringify({ 
-              error: "Champs requis manquants: materialId, userId" 
+              error: "Champs requis manquants: materialId, quantity, borrowerName, borrowerContact, loanDate, expectedReturnDate, conditionAtLoan"
             }),
           };
         }
@@ -124,16 +219,15 @@ exports.handler = async (event) => {
         const loan = {
           id: uuidv4(),
           materialId: body.materialId,
-          materialName: body.materialName || '',
-          userId: body.userId,
-          userName: body.userName || '',
-          userEmail: body.userEmail || '',
-          quantity: body.quantity || 1,
-          loanDate: body.loanDate || new Date().toISOString(),
-          expectedReturnDate: body.expectedReturnDate || '',
-          actualReturnDate: body.actualReturnDate || null,
-          status: body.status || 'active',
-          notes: body.notes || '',
+          quantity: body.quantity,
+          borrowerName: body.borrowerName,
+          borrowerContact: body.borrowerContact,
+          loanDate: body.loanDate,
+          expectedReturnDate: body.expectedReturnDate,
+          actualReturnDate: body.actualReturnDate || undefined,
+          notes: body.notes || undefined,
+          conditionAtLoan: body.conditionAtLoan,
+          conditionAtReturn: body.conditionAtReturn || undefined,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -145,10 +239,16 @@ exports.handler = async (event) => {
           })
         );
 
+        // Mettre à jour la quantité prêtée du matériel
+        await updateMaterialLoanedQuantity(body.materialId, body.quantity);
+
+        // Sanitiser le prêt créé pour éviter les erreurs frontend
+        const sanitizedLoan = sanitizeLoan(loan);
+
         return {
           statusCode: 201,
           headers,
-          body: JSON.stringify({ data: loan }),
+          body: JSON.stringify({ data: sanitizedLoan }),
         };
       } catch (error) {
         console.error("Erreur lors de la création:", error);
@@ -168,6 +268,24 @@ exports.handler = async (event) => {
       try {
         const body = JSON.parse(event.body || '{}');
 
+        // D'abord récupérer le prêt actuel pour vérifier les changements de quantité
+        const getCurrentLoan = await dynamoDb.send(
+          new GetCommand({
+            TableName: LOANS_TABLE,
+            Key: { id: id },
+          })
+        );
+
+        if (!getCurrentLoan.Item) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: "Prêt non trouvé" }),
+          };
+        }
+
+        const currentLoan = getCurrentLoan.Item;
+
         const updateExpression = [];
         const expressionAttributeValues = {};
         const expressionAttributeNames = {};
@@ -185,7 +303,7 @@ exports.handler = async (event) => {
         updateExpression.push('#updatedAt = :updatedAt');
         expressionAttributeNames['#updatedAt'] = 'updatedAt';
 
-        await dynamoDb.send(
+        const updateResult = await dynamoDb.send(
           new UpdateCommand({
             TableName: LOANS_TABLE,
             Key: { id: id },
@@ -196,11 +314,29 @@ exports.handler = async (event) => {
           })
         );
 
+        // Si la quantité a changé, mettre à jour la quantité prêtée du matériel
+        if (body.quantity !== undefined && body.quantity !== currentLoan.quantity) {
+          const quantityDifference = body.quantity - currentLoan.quantity;
+          await updateMaterialLoanedQuantity(currentLoan.materialId, quantityDifference);
+        }
+
+        // Récupérer le prêt mis à jour pour le retourner
+        const finalLoan = updateResult.Attributes || currentLoan;
+
+        // S'assurer que tous les champs sont définis pour éviter les erreurs frontend
+        const sanitizedLoan = {
+          ...finalLoan,
+          actualReturnDate: finalLoan.actualReturnDate || null,
+          conditionAtReturn: finalLoan.conditionAtReturn || null,
+          notes: finalLoan.notes || null
+        };
+
         return {
           statusCode: 200,
           headers,
           body: JSON.stringify({
-            message: "Prêt mis à jour avec succès"
+            message: "Prêt mis à jour avec succès",
+            data: sanitizedLoan
           }),
         };
       } catch (error) {
@@ -219,12 +355,34 @@ exports.handler = async (event) => {
     // DELETE /loans/{id} - Supprime un prêt
     if (method === "DELETE" && id) {
       try {
+        // D'abord récupérer le prêt pour obtenir les informations nécessaires
+        const getLoanResult = await dynamoDb.send(
+          new GetCommand({
+            TableName: LOANS_TABLE,
+            Key: { id: id },
+          })
+        );
+
+        if (!getLoanResult.Item) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: "Prêt non trouvé" }),
+          };
+        }
+
+        const loan = getLoanResult.Item;
+
+        // Supprimer le prêt
         await dynamoDb.send(
           new DeleteCommand({
             TableName: LOANS_TABLE,
             Key: { id: id },
           })
         );
+
+        // Diminuer la quantité prêtée du matériel
+        await updateMaterialLoanedQuantity(loan.materialId, -loan.quantity);
 
         return {
           statusCode: 200,
