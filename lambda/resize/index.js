@@ -107,7 +107,7 @@ exports.handler = async (event) => {
     
     // Upload vers S3 (LocalStack)
     const uploadParams = {
-      Bucket: 'ffn-nextjs-assets-bucket',
+      Bucket: 'ffn-images-bucket',
       Key: s3Key,
       Body: buffer,
       ContentType: `image/${format}`,
@@ -117,7 +117,7 @@ exports.handler = async (event) => {
     const uploadResult = await s3.upload(uploadParams).promise();
     console.log('Upload S3 réussi:', uploadResult.Location);
 
-    const s3Url = `http://localhost:4566/ffn-nextjs-assets-bucket/${s3Key}`;
+    const s3Url = `http://localhost:4566/ffn-images-bucket/${s3Key}`;
 
     return {
       statusCode: 200,

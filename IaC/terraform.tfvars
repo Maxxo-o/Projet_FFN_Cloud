@@ -10,13 +10,16 @@ sqs_queue_name = "UserQueue"
 sqs_visibility_timeout = 30
 
 # Lambda
-lambda_function_name = "resizeImage"
+lambda_resize_function_name = "resizeImage"
+lambda_upload_function_name = "uploadFile"
 lambda_runtime = "nodejs18.x"
 lambda_handler = "index.handler"
 lambda_memory_size = 512
 lambda_timeout = 30
-lambda_source_dir = "../lambda/resize"
-lambda_zip_output = "../lambda/resize_lambda.zip"
+lambda_resize_source_dir = "../lambda/resize"
+lambda_resize_zip_output = "../lambda/resize_lambda.zip"
+lambda_upload_source_dir = "../lambda/upload"
+lambda_upload_zip_output = "../lambda/upload_lambda.zip"
 
 # Variables d'environnement Lambda
 lambda_env_bucket = "ffn-nextjs-assets-bucket"

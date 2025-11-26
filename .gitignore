@@ -76,3 +76,6 @@ temp/
 
 # VS Code workspace
 *.code-workspace
+
+# Zip files
+*.zip
