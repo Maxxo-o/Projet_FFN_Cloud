@@ -15,7 +15,7 @@ exports.handler = async (event) => {
   try {
     console.log('Event:', JSON.stringify(event, null, 2));
     
-    const bucketName = process.env.BUCKET_IMAGES;
+    const bucketName = "ffn-images-bucket";
     const body = event.body;
     const isBase64 = event.isBase64Encoded;
     

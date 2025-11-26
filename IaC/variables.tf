@@ -37,10 +37,22 @@ variable "sqs_visibility_timeout" {
 }
 
 # Lambda
-variable "lambda_function_name" {
+variable "lambda_resize_function_name" {
   description = "Nom de la fonction Lambda"
   type        = string
   default     = "resizeImage"
+}
+
+variable "lambda_upload_function_name" {
+  description = "Nom de la fonction Lambda pour l'upload"
+  type        = string
+  default     = "uploadFile"
+}
+
+variable "lambda_delete_function_name" {
+  description = "Nom de la fonction Lambda pour la suppression"
+  type        = string
+  default     = "deleteFile"
 }
 
 variable "lambda_runtime" {
@@ -67,16 +79,40 @@ variable "lambda_timeout" {
   default     = 30
 }
 
-variable "lambda_source_dir" {
+variable "lambda_resize_source_dir" {
   description = "Répertoire source de la fonction Lambda"
   type        = string
   default     = "../lambda/resize"
 }
 
-variable "lambda_zip_output" {
+variable "lambda_resize_zip_output" {
   description = "Chemin de sortie du ZIP Lambda"
   type        = string
   default     = "../lambda/resize_lambda.zip"
+}
+
+variable "lambda_upload_source_dir" {
+  description = "Répertoire source de la fonction Lambda d'upload"
+  type        = string
+  default     = "../lambda/upload"
+}
+
+variable "lambda_upload_zip_output" {
+  description = "Chemin de sortie du ZIP Lambda d'upload"
+  type        = string
+  default     = "../lambda/upload_lambda.zip"
+}
+
+variable "lambda_delete_source_dir" {
+  description = "Répertoire source de la fonction Lambda de suppression"
+  type        = string
+  default     = "../lambda/delete"
+}
+
+variable "lambda_delete_zip_output" {
+  description = "Chemin de sortie du ZIP Lambda de suppression"
+  type        = string
+  default     = "../lambda/delete_lambda.zip"
 }
 
 # Variables d'environnement Lambda
