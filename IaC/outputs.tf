@@ -9,12 +9,12 @@ output "api_gateway_url" {
 
 output "materials_api_url" {
   description = "URL de base de l'API Materials"
-  value       = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.main.id}/dev/_user_request_/materials"
+  value       = "http://localhost:4566/_aws/execute-api/${aws_api_gateway_rest_api.api.id}/prod/materials"
 }
 
 output "loans_api_url" {
   description = "URL de base de l'API Loans"
-  value       = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.main.id}/dev/_user_request_/loans"
+  value       = "http://localhost:4566/_aws/execute-api/${aws_api_gateway_rest_api.api.id}/prod/loans"
 }
 
 output "sqs_queue_url" {
@@ -58,6 +58,16 @@ output "upload_endpoint" {
 output "delete_endpoint" {
   description = "API Gateway endpoint for delete"
   value       = "http://localhost:4566/_aws/execute-api/${aws_api_gateway_rest_api.api.id}/prod/delete"
+}
+
+output "materials_endpoint" {
+  description = "API Gateway endpoint for materials"
+  value       = "http://localhost:4566/_aws/execute-api/${aws_api_gateway_rest_api.api.id}/prod/materials"
+}
+
+output "loans_endpoint" {
+  description = "API Gateway endpoint for loans"
+  value       = "http://localhost:4566/_aws/execute-api/${aws_api_gateway_rest_api.api.id}/prod/loans"
 }
 
 output "s3_bucket_name" {
