@@ -50,6 +50,11 @@ output "upload_endpoint" {
   value       = "http://localhost:4566/_aws/execute-api/${aws_api_gateway_rest_api.api.id}/prod/upload"
 }
 
+output "delete_endpoint" {
+  description = "API Gateway endpoint for delete"
+  value       = "http://localhost:4566/_aws/execute-api/${aws_api_gateway_rest_api.api.id}/prod/delete"
+}
+
 output "s3_bucket_name" {
   description = "S3 bucket name for images"
   value       = aws_s3_bucket.images.bucket

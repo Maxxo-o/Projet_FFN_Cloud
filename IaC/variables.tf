@@ -49,6 +49,12 @@ variable "lambda_upload_function_name" {
   default     = "uploadFile"
 }
 
+variable "lambda_delete_function_name" {
+  description = "Nom de la fonction Lambda pour la suppression"
+  type        = string
+  default     = "deleteFile"
+}
+
 variable "lambda_runtime" {
   description = "Runtime de la fonction Lambda"
   type        = string
@@ -95,6 +101,18 @@ variable "lambda_upload_zip_output" {
   description = "Chemin de sortie du ZIP Lambda d'upload"
   type        = string
   default     = "../lambda/upload_lambda.zip"
+}
+
+variable "lambda_delete_source_dir" {
+  description = "Répertoire source de la fonction Lambda de suppression"
+  type        = string
+  default     = "../lambda/delete"
+}
+
+variable "lambda_delete_zip_output" {
+  description = "Chemin de sortie du ZIP Lambda de suppression"
+  type        = string
+  default     = "../lambda/delete_lambda.zip"
 }
 
 # Variables d'environnement Lambda

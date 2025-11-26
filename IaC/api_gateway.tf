@@ -24,6 +24,13 @@ resource "aws_api_gateway_resource" "resize" {
   path_part   = "resize"
 }
 
+# Resource pour delete
+resource "aws_api_gateway_resource" "delete" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "delete"
+}
+
 resource "aws_api_gateway_method" "upload_post" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.upload.id
@@ -36,6 +43,14 @@ resource "aws_api_gateway_method" "resize_post" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.resize.id
   http_method   = "POST"
+  authorization = "NONE"
+}
+
+# Méthode pour delete
+resource "aws_api_gateway_method" "delete_delete" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.delete.id
+  http_method   = "DELETE"
   authorization = "NONE"
 }
 
@@ -58,6 +73,16 @@ resource "aws_api_gateway_integration" "resize_integration" {
   integration_http_method = "POST"
 }
 
+# Intégration pour delete
+resource "aws_api_gateway_integration" "delete_integration" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.delete.id
+  http_method = aws_api_gateway_method.delete_delete.http_method
+  type        = "AWS_PROXY"
+  uri         = aws_lambda_function.delete_file.invoke_arn
+  integration_http_method = "POST"
+}
+
 resource "aws_lambda_permission" "apigw_lambda" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
@@ -75,10 +100,20 @@ resource "aws_lambda_permission" "resize_apigw" {
   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
+# Permission pour delete
+resource "aws_lambda_permission" "delete_apigw" {
+  statement_id  = "AllowExecutionFromAPIGatewayDelete"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.delete_file.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
+}
+
 resource "aws_api_gateway_deployment" "deployment" {
   depends_on = [
     aws_api_gateway_integration.upload_integration,
-    aws_api_gateway_integration.resize_integration
+    aws_api_gateway_integration.resize_integration,
+    aws_api_gateway_integration.delete_integration
   ]
 
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -88,7 +123,8 @@ resource "aws_api_gateway_deployment" "deployment" {
   triggers = {
     redeployment = sha1(jsonencode([
       aws_api_gateway_integration.upload_integration.id,
-      aws_api_gateway_integration.resize_integration.id
+      aws_api_gateway_integration.resize_integration.id,
+      aws_api_gateway_integration.delete_integration.id
     ]))
   }
 
