@@ -54,3 +54,109 @@ resource "aws_lambda_function" "resize_image" {
 
   tags = var.common_tags
 }
+
+##############################################
+# IAM Role for Lambda
+##############################################
+
+resource "aws_iam_role" "lambda_role" {
+  name = "lambda_dynamodb_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "lambda_policy" {
+  name = "lambda_dynamodb_policy"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Scan",
+          "dynamodb:Query"
+        ]
+        Resource = [
+          aws_dynamodb_table.materials.arn,
+          "${aws_dynamodb_table.materials.arn}/index/*",
+          aws_dynamodb_table.loans.arn,
+          "${aws_dynamodb_table.loans.arn}/index/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+##############################################
+# Lambda Functions - Materials
+##############################################
+
+data "archive_file" "materials_lambda" {
+  type        = "zip"
+  source_dir  = "../lambda/materials"
+  output_path = "../lambda_materials.zip"
+}
+
+resource "aws_lambda_function" "materials" {
+  filename         = data.archive_file.materials_lambda.output_path
+  function_name    = "materials-handler"
+  role            = aws_iam_role.lambda_role.arn
+  handler         = "index.handler"
+  source_code_hash = data.archive_file.materials_lambda.output_base64sha256
+  runtime         = "nodejs20.x"
+
+  environment {
+    variables = {
+      MATERIALS_TABLE = aws_dynamodb_table.materials.name
+    }
+  }
+}
+
+##############################################
+# Lambda Functions - Loans
+##############################################
+
+data "archive_file" "loans_lambda" {
+  type        = "zip"
+  source_dir  = "../lambda/loans"
+  output_path = "../lambda_loans.zip"
+}
+
+resource "aws_lambda_function" "loans" {
+  filename         = data.archive_file.loans_lambda.output_path
+  function_name    = "loans-handler"
+  role            = aws_iam_role.lambda_role.arn
+  handler         = "index.handler"
+  source_code_hash = data.archive_file.loans_lambda.output_base64sha256
+  runtime         = "nodejs20.x"
+
+  environment {
+    variables = {
+      LOANS_TABLE = aws_dynamodb_table.loans.name
+    }
+  }
+}

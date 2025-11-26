@@ -19,16 +19,16 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
 
-  #########################################
-  # Frontend
-  #########################################
-  frontend:
-    build:
-      context: ../ffn-material-management
-    container_name: react-app
-    ports:
-      - "3000:3000"
-    environment:
-      - REACT_APP_API_URL=http://localhost:4566
-    depends_on:
-      - localstack
+#  #########################################
+#  # Frontend
+#  #########################################
+#  frontend:
+#    build:
+#      context: ../ffn-material-management
+#    container_name: react-app
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - REACT_APP_API_URL=http://localhost:4566
+#    depends_on:
+#      - localstack
