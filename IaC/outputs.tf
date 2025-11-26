@@ -7,9 +7,14 @@ output "api_gateway_url" {
   value       = "http://localhost:4566/_aws/execute-api/${aws_api_gateway_rest_api.api.id}/prod"
 }
 
-output "dynamodb_table_name" {
-  description = "Nom de la table DynamoDB"
-  value       = aws_dynamodb_table.users.name
+output "materials_api_url" {
+  description = "URL de base de l'API Materials"
+  value       = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.main.id}/dev/_user_request_/materials"
+}
+
+output "loans_api_url" {
+  description = "URL de base de l'API Loans"
+  value       = "http://localhost:4566/restapis/${aws_api_gateway_rest_api.main.id}/dev/_user_request_/loans"
 }
 
 output "sqs_queue_url" {
